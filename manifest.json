@@ -1,0 +1,48 @@
+{
+  "name": "Crossing the Bridge",
+  "description": "Base Level Extension",
+  "version": "1.0",
+  "manifest_version": 3,
+  "action": {
+    "default_popup": "bridge.html",
+    "default_icon": {
+      "16": "assets/logo.png",
+      "32": "assets/logo.png",
+      "48": "assets/logo.png",
+      "128": "assets/logo.png"
+    }
+  },
+  "icons": {
+    "16": "assets/logo.png",
+    "32": "assets/logo.png",
+    "48": "assets/logo.png",
+    "128": "assets/logo.png"
+  },
+  "options_page": "settings.html",
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "permissions": [
+    "storage",
+    "activeTab",
+    "tabs",
+    "sidePanel",
+    "scripting"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["bridge.js"],
+      "css": ["overlay.css"]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["overlay.css", "assets/logo.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
