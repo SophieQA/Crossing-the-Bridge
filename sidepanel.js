@@ -54,15 +54,20 @@ async function summarizeText(text, hskLevel) {
     6: 'HSK 6 (5000+个词汇)'
   };
 
-  const prompt = `Summarize the following Chinese text using only ${hskDescriptions[hskLevel]} vocabulary. Keep it concise (about 1/4 of original length) and use simple sentences.
+  // Use bilingual prompt with strong Chinese output enforcement
+  const prompt = `请用中文总结以下文章，只使用${hskDescriptions[hskLevel]}的词汇。保持简洁（大约原文的1/4长度），使用简单的句子。
+Summarize the following Chinese text using only ${hskDescriptions[hskLevel]} vocabulary. Keep it concise (about 1/4 of original length) and use simple sentences.
 
-Text to summarize:
+重要：输出必须是中文！
+IMPORTANT: Output MUST be in Chinese!
+
+要总结的文章 / Text to summarize:
 ${text}
 
-Summary:`;
+中文总结 / Chinese Summary:`;
 
   // Choose the appropriate action based on selected model
-  const action = selectedModel === 'cloud' ? 'getIdiomaticPhrasing' : 'summarizeWithLocalLLM';
+  const action = selectedModel === 'cloud' ? 'summarizeWithCloudLLM' : 'summarizeWithLocalLLM';
 
   return new Promise((resolve, reject) => {
     chrome.runtime.sendMessage(
@@ -81,21 +86,31 @@ Summary:`;
           // Clean up the response to remove any prompt echoing
           let summary = response.text;
 
-          // Remove the prompt if it was echoed back
-          const summaryMarker = 'Summary:';
-          const markerIndex = summary.lastIndexOf(summaryMarker);
-          if (markerIndex !== -1) {
-            summary = summary.substring(markerIndex + summaryMarker.length).trim();
+          // Remove the prompt if it was echoed back (both English and Chinese markers)
+          const summaryMarkers = ['Chinese Summary:', '中文总结', 'Summary:', '总结：'];
+          for (const marker of summaryMarkers) {
+            const markerIndex = summary.lastIndexOf(marker);
+            if (markerIndex !== -1) {
+              summary = summary.substring(markerIndex + marker.length).trim();
+              break;
+            }
           }
 
           // Remove the original prompt text if present
-          const textMarker = 'Text to summarize:';
-          const textMarkerIndex = summary.indexOf(textMarker);
-          if (textMarkerIndex !== -1) {
-            const afterMarker = summary.substring(textMarkerIndex);
-            const summaryStart = afterMarker.indexOf(summaryMarker);
-            if (summaryStart !== -1) {
-              summary = afterMarker.substring(summaryStart + summaryMarker.length).trim();
+          const textMarkers = ['Text to summarize:', '要总结的文章'];
+          for (const textMarker of textMarkers) {
+            const textMarkerIndex = summary.indexOf(textMarker);
+            if (textMarkerIndex !== -1) {
+              const afterMarker = summary.substring(textMarkerIndex);
+              // Try to find where summary starts after the text
+              for (const summaryMarker of summaryMarkers) {
+                const summaryStart = afterMarker.indexOf(summaryMarker);
+                if (summaryStart !== -1) {
+                  summary = afterMarker.substring(summaryStart + summaryMarker.length).trim();
+                  break;
+                }
+              }
+              break;
             }
           }
 
